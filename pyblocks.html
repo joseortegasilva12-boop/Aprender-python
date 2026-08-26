@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PyBlocks — Aprende Python jugando</title>
+<style>
+  :root{
+    --bg-deep: #0f1720;
+    --bg-panel: #16212c;
+    --bg-panel-2: #1c2a37;
+    --py-blue: #4b8bbe;
+    --py-blue-dim: #2f5f82;
+    --py-yellow: #ffd43b;
+    --py-yellow-dim: #c9a220;
+    --ink: #eaf2f8;
+    --ink-dim: #9fb3c2;
+    --good: #5fd88f;
+    --bad: #ff6b6b;
+    --radius: 14px;
+    font-size: 16px;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(circle at 15% 0%, rgba(75,139,190,0.18), transparent 45%),
+      radial-gradient(circle at 90% 20%, rgba(255,212,59,0.10), transparent 40%),
+      var(--bg-deep);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    display:flex;
+    justify-content:center;
+    padding:20px;
+  }
+  .app{ width:100%; max-width:980px; }
+
+  /* ---------- HEADER ---------- */
+  header{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    margin-bottom:18px;
+  }
+  .brand{
+    display:flex; align-items:center; gap:10px;
+    font-weight:800; font-size:1.25rem; letter-spacing:0.2px;
+  }
+  .brand .dot-blue{ color:var(--py-blue); }
+  .brand .dot-yellow{ color:var(--py-yellow); }
+  .logo{
+    width:34px; height:34px;
+    border-radius:9px;
+    background:linear-gradient(135deg,var(--py-blue),var(--py-blue-dim));
+    display:flex;align-items:center;justify-content:center;
+    font-family:ui-monospace,SFMono-Regular,Consolas,monospace;
+    font-weight:800;
+    color:var(--py-yellow);
+    box-shadow: inset 0 0 0 2px rgba(255,212,59,0.35);
+  }
+  .progress-track{
+    flex:1;
+    display:flex; gap:6px;
+  }
+  .progress-seg{
+    flex:1;
+    height:8px;
+    border-radius:6px;
+    background:#233240;
+    overflow:hidden;
+    position:relative;
+  }
+  .progress-seg.done{ background:var(--good); }
+  .progress-seg.current::after{
+    content:"";
+    position:absolute; inset:0;
+    background:linear-gradient(90deg,var(--py-yellow),transparent);
+    animation:fillcur 1.6s ease-in-out infinite;
+  }
+  @keyframes fillcur{ 0%,100%{opacity:.35} 50%{opacity:.9} }
+
+  .hearts{
+    display:flex; gap:4px; font-size:1.1rem;
+    min-width:70px; justify-content:flex-end;
+  }
+  .heart{ filter: drop-shadow(0 0 3px rgba(255,107,107,0.4)); transition: transform .2s; }
+  .heart.lost{ filter:grayscale(1) opacity(0.3); transform:scale(0.85); }
+
+  /* ---------- LAYOUT ---------- */
+  .stage{
+    display:grid;
+    grid-template-columns: 250px 1fr;
+    gap:18px;
+  }
+  @media (max-width:720px){
+    .stage{ grid-template-columns: 1fr; }
+  }
+
+  /* ---------- MASCOT PANEL ---------- */
+  .mascot-panel{
+    background:var(--bg-panel);
+    border-radius:var(--radius);
+    padding:18px 14px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:10px;
+    border:1px solid #22323f;
+  }
+  .mascot-name{
+    font-weight:700; color:var(--py-yellow); font-size:0.95rem;
+    letter-spacing:0.3px;
+  }
+  .mascot-sub{ font-size:0.72rem; color:var(--ink-dim); margin-top:-8px; }
+
+  svg.pit{ width:120px; height:120px; }
+  .pit-idle{ animation: bob 2.6s ease-in-out infinite; transform-origin:center; }
+  @keyframes bob{ 0%,100%{ transform:translateY(0) rotate(0deg);} 50%{ transform:translateY(-4px) rotate(-1.5deg);} }
+  .pit-happy{ animation: happyjump .5s ease; }
+  @keyframes happyjump{ 0%{transform:translateY(0) scale(1)} 40%{transform:translateY(-14px) scale(1.06)} 100%{transform:translateY(0) scale(1)} }
+  .pit-sad{ animation: sadshake .5s ease; }
+  @keyframes sadshake{ 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px) rotate(-3deg)} 75%{transform:translateX(6px) rotate(3deg)} }
+
+  .xp-badge{
+    margin-top:4px;
+    font-family:ui-monospace,SFMono-Regular,Consolas,monospace;
+    font-size:0.78rem;
+    color:var(--ink-dim);
+    background:var(--bg-panel-2);
+    border-radius:20px;
+    padding:4px 12px;
+  }
+  .xp-badge b{ color:var(--py-yellow); }
+
+  /* ---------- MAIN PANEL ---------- */
+  .main-panel{
+    background:var(--bg-panel);
+    border-radius:var(--radius);
+    border:1px solid #22323f;
+    padding:20px;
+    min-height:420px;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+
+  .level-tag{
+    font-family:ui-monospace,SFMono-Regular,Consolas,monospace;
+    font-size:0.72rem;
+    color:var(--py-blue);
+    text-transform:uppercase;
+    letter-spacing:1.2px;
+  }
+  .level-title{ font-size:1.35rem; font-weight:800; margin:0; }
+
+  /* speech bubble (terminal-styled) */
+  .speech{
+    background:var(--bg-panel-2);
+    border-radius:10px;
+    border:1px solid #263646;
+    padding:0;
+    overflow:hidden;
+    position:relative;
+  }
+  .speech-bar{
+    display:flex; gap:6px;
+    padding:8px 10px;
+    background:#1a2732;
+    border-bottom:1px solid #263646;
+  }
+  .speech-bar span{ width:9px; height:9px; border-radius:50%; background:#3a4a58; }
+  .speech-bar span:nth-child(1){ background:#ff6b6b55; }
+  .speech-bar span:nth-child(2){ background:#ffd43b55; }
+  .speech-bar span:nth-child(3){ background:#5fd88f55; }
+  .speech-body{
+    padding:16px 18px;
+    font-size:1.02rem;
+    line-height:1.55;
+    color:var(--ink);
+  }
+  .speech-body .prompt{ color:var(--good); font-family:ui-monospace,monospace; margin-right:6px; }
+
+  .btn{
+    border:none;
+    border-radius:10px;
+    padding:11px 20px;
+    font-weight:700;
+    font-size:0.92rem;
+    cursor:pointer;
+    transition:transform .12s ease, box-shadow .12s ease, opacity .12s ease;
+  }
+  .btn:active{ transform:scale(0.96); }
+  .btn-primary{
+    background:var(--py-yellow);
+    color:#2a2205;
+    box-shadow:0 4px 0 var(--py-yellow-dim);
+  }
+  .btn-primary:hover{ filter:brightness(1.05); }
+  .btn-primary:disabled{ opacity:0.4; cursor:not-allowed; box-shadow:none; }
+  .btn-ghost{
+    background:transparent;
+    color:var(--ink-dim);
+    border:1px solid #2a3947;
+  }
+  .row-end{ display:flex; justify-content:flex-end; gap:10px; margin-top:auto; }
+
+  /* ---------- BLOCK PUZZLE ---------- */
+  .practice-wrap{ display:flex; flex-direction:column; gap:16px; }
+  .goal-box{
+    background:var(--bg-panel-2);
+    border:1px dashed #3a4a58;
+    border-radius:10px;
+    padding:12px 14px;
+    font-size:0.92rem;
+    color:var(--ink-dim);
+  }
+  .goal-box b{ color:var(--ink); }
+
+  .assembly{
+    min-height:64px;
+    background:var(--bg-panel-2);
+    border-radius:10px;
+    border:2px solid #263646;
+    padding:10px;
+    display:flex;
+    flex-wrap:wrap;
+    align-content:flex-start;
+    gap:8px;
+    align-items:center;
+  }
+  .assembly.empty::before{
+    content:"Toca los bloques de abajo para armar tu código, en orden \2193";
+    color:#54697a;
+    font-size:0.85rem;
+    padding:6px 4px;
+  }
+  .assembly.wrong{ animation: shake .4s; border-color: var(--bad); }
+  @keyframes shake{
+    0%,100%{ transform:translateX(0); }
+    20%{ transform:translateX(-8px); }
+    40%{ transform:translateX(8px); }
+    60%{ transform:translateX(-5px); }
+    80%{ transform:translateX(5px); }
+  }
+  .assembly.right{ border-color: var(--good); }
+
+  .bank{
+    display:flex; flex-wrap:wrap; gap:8px;
+    padding-top:4px;
+    border-top:1px solid #22323f;
+  }
+
+  .block{
+    font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace;
+    font-size:0.95rem;
+    font-weight:600;
+    padding:9px 14px;
+    border-radius:8px 8px 8px 2px;
+    cursor:pointer;
+    user-select:none;
+    color:#0d1720;
+    position:relative;
+    transition:transform .1s ease, opacity .15s ease;
+    box-shadow:0 3px 0 rgba(0,0,0,0.25);
+    white-space:pre;
+  }
+  .block:hover{ transform:translateY(-2px); }
+  .block:active{ transform:translateY(1px); box-shadow:0 1px 0 rgba(0,0,0,0.25); }
+  .block.kw{ background:var(--py-yellow); }
+  .block.fn{ background:#7ec8f2; }
+  .block.str{ background:#a6e3a1; }
+  .block.var{ background:#f2b7e8; }
+  .block.op{ background:#d8d8d8; }
+  .block.num{ background:#f7c78a; }
+  .block.placed{ opacity:1; }
+  .block.usedup{ opacity:0.25; pointer-events:none; }
+  .block .x{
+    margin-left:8px; opacity:0.55; font-weight:800;
+  }
+
+  /* terminal output */
+  .terminal{
+    background:#0b1218;
+    border-radius:10px;
+    border:1px solid #263646;
+    font-family:ui-monospace,SFMono-Regular,Consolas,monospace;
+    font-size:0.9rem;
+    color:#c8f7c5;
+    padding:14px 16px;
+    min-height:56px;
+    white-space:pre-wrap;
+  }
+  .terminal .path{ color:var(--py-blue); }
+  .terminal .err{ color:var(--bad); }
+
+  /* end screen */
+  .end-screen{
+    text-align:center;
+    padding:30px 10px;
+    display:flex; flex-direction:column; align-items:center; gap:12px;
+  }
+  .end-screen h2{ font-size:1.6rem; margin:6px 0; }
+  .big-xp{ font-size:2.2rem; font-weight:800; color:var(--py-yellow); }
+
+  .hidden{ display:none !important; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="brand">
+      <div class="logo">Py</div>
+      <span><span class="dot-blue">Py</span><span class="dot-yellow">Blocks</span></span>
+    </div>
+    <div class="progress-track" id="progressTrack"></div>
+    <div class="hearts" id="hearts"></div>
+  </header>
+
+  <div class="stage">
+    <!-- MASCOT -->
+    <div class="mascot-panel">
+      <div class="mascot-name">Pit 🐍</div>
+      <div class="mascot-sub">tu guía de Python</div>
+      <svg class="pit pit-idle" id="pitSvg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="body" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#5fa8d3"/>
+            <stop offset="100%" stop-color="#2f6690"/>
+          </linearGradient>
+        </defs>
+        <path d="M25 95 C10 95 10 75 25 72 C45 68 30 50 50 48 C68 46 55 28 75 28 C95 28 100 45 88 55 C102 60 100 82 82 82 C60 82 70 100 45 100 C35 100 30 98 25 95 Z" fill="url(#body)" stroke="#1d425c" stroke-width="2"/>
+        <circle cx="83" cy="34" r="13" fill="#ffd43b" stroke="#1d425c" stroke-width="2"/>
+        <circle cx="87" cy="30" r="2.4" fill="#122" />
+        <path d="M92 33 q5 2 6 6" stroke="#122" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+        <path d="M96 34 l7 -3 M96 34 l7 3" stroke="#ffb703" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+      <div class="xp-badge">XP: <b id="xpVal">0</b></div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="main-panel" id="mainPanel">
+      <!-- filled by JS -->
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ======================= DATA: NIVELES ======================= */
+const LEVELS = [
+  {
+    id:0,
+    tag:"Nivel 1 · Salida",
+    title:"Tu primera línea de código",
+    intro:[
+      "¡Hola! Soy Pit 🐍, y voy a enseñarte Python armando bloques, como si fueran piezas de Lego.",
+      "En Python, para mostrar un mensaje en pantalla usamos la función <code>print()</code>.",
+      "Todo lo que quieras mostrar va entre paréntesis, y si es texto, entre comillas. Por ejemplo: print(\"Hola\").",
+      "Ahora te toca a ti. Arma el bloque para mostrar el mensaje: Hola, mundo"
+    ],
+    goal: 'Muestra en pantalla: <b>Hola, mundo</b>',
+    solution: ["print","(","\"Hola, mundo\"",")"],
+    bank: ["print","(","\"Hola, mundo\"",")","for","+"],
+    kinds: {"print":"fn","(":"op",")":"op","\"Hola, mundo\"":"str","for":"kw","+":"op"},
+    run: () => `Hola, mundo`
+  },
+  {
+    id:1,
+    tag:"Nivel 2 · Variables",
+    title:"Guardando información",
+    intro:[
+      "Muy bien, ¡lo lograste! 🎉 Ahora veamos las variables.",
+      "Una variable es como una cajita con nombre donde guardamos un dato. Se crea así: nombre = valor.",
+      "Por ejemplo: edad = 15 guarda el número 15 en una cajita llamada 'edad'.",
+      "Tu turno: crea una variable llamada nombre que guarde el texto \"Ana\", y luego imprímela con print(nombre)."
+    ],
+    goal: 'Crea <b>nombre = "Ana"</b> y luego <b>print(nombre)</b>',
+    solution: ["nombre","=","\"Ana\"","print","(","nombre",")"],
+    bank: ["nombre","=","\"Ana\"","print","(","nombre",")","if",":"],
+    kinds: {"nombre":"var","=":"op","\"Ana\"":"str","print":"fn","(":"op",")":"op","if":"kw",":":"op"},
+    run: () => `Ana`
+  },
+  {
+    id:2,
+    tag:"Nivel 3 · Decisiones",
+    title:"Tomando decisiones con if",
+    intro:[
+      "Los programas también deben tomar decisiones, ¡igual que tú!",
+      "Para eso usamos <code>if</code> (si). La estructura es: if condición: y luego, con sangría, lo que se hace.",
+      "Ejemplo: if edad >= 18: print(\"Adulto\")",
+      "Ahora arma: si (edad >= 18), imprime el texto \"Mayor de edad\"."
+    ],
+    goal: 'Arma: <b>if edad >= 18 :  print("Mayor de edad")</b>',
+    solution: ["if","edad",">=","18",":","print","(","\"Mayor de edad\"",")"],
+    bank: ["if","edad",">=","18",":","print","(","\"Mayor de edad\"",")","for","range"],
+    kinds: {"if":"kw","edad":"var",">=":"op","18":"num",":":"op","print":"fn","(":"op","\"Mayor de edad\"":"str",")":"op","for":"kw","range":"fn"},
+    run: () => `Mayor de edad`
+  },
+  {
+    id:3,
+    tag:"Nivel 4 · Repetición",
+    title:"Repitiendo con bucles for",
+    intro:[
+      "¡Último nivel! Cuando queremos repetir algo varias veces, usamos un bucle <code>for</code>.",
+      "Ejemplo: for i in range(3): print(i) — esto repite 3 veces, mostrando 0, 1 y 2.",
+      "range(3) genera los números 0, 1 y 2 (empieza en 0 y no incluye el 3).",
+      "Tu turno: arma un bucle que repita 3 veces e imprima la variable i."
+    ],
+    goal: 'Arma: <b>for i in range(3) :  print(i)</b>',
+    solution: ["for","i","in","range","(","3",")",":","print","(","i",")"],
+    bank: ["for","i","in","range","(","3",")",":","print","(","i",")","if","=="],
+    kinds: {"for":"kw","i":"var","in":"kw","range":"fn","(":"op","3":"num",")":"op",":":"op","print":"fn","i2":"var","if":"kw","==":"op"},
+    kindsOverride: {2:"var", 9:"var"}, // segunda "i" y el argumento de print -> se resuelve por posición si hace falta
+    run: () => `0\n1\n2`
+  }
+];
+
+/* ======================= ESTADO ======================= */
+let state = {
+  levelIndex: 0,
+  phase: "intro",      // intro | practice | success
+  introStep: 0,
+  hearts: 3,
+  xp: 0,
+  assembled: [],        // indices usados del bank
+  bankUsed: []
+};
+
+const mainPanel = document.getElementById("mainPanel");
+const pitSvg = document.getElementById("pitSvg");
+const xpVal = document.getElementById("xpVal");
+
+function setPitMood(mood){
+  pitSvg.classList.remove("pit-idle","pit-happy","pit-sad");
+  void pitSvg.offsetWidth;
+  pitSvg.classList.add(mood === "happy" ? "pit-happy" : mood === "sad" ? "pit-sad" : "pit-idle");
+}
+
+function renderHeaderBits(){
+  const track = document.getElementById("progressTrack");
+  track.innerHTML = "";
+  LEVELS.forEach((lvl, i) => {
+    const seg = document.createElement("div");
+    seg.className = "progress-seg" + (i < state.levelIndex ? " done" : i === state.levelIndex ? " current" : "");
+    track.appendChild(seg);
+  });
+  const heartsEl = document.getElementById("hearts");
+  heartsEl.innerHTML = "";
+  for(let i=0;i<3;i++){
+    const span = document.createElement("span");
+    span.className = "heart" + (i < state.hearts ? "" : " lost");
+    span.textContent = "❤️";
+    heartsEl.appendChild(span);
+  }
+  xpVal.textContent = state.xp;
+}
+
+/* ======================= RENDER: INTRO ======================= */
+function renderIntro(){
+  const lvl = LEVELS[state.levelIndex];
+  const step = state.introStep;
+  const isLast = step === lvl.intro.length - 1;
+  setPitMood("idle");
+
+  mainPanel.innerHTML = `
+    <div class="level-tag">${lvl.tag}</div>
+    <h2 class="level-title">${lvl.title}</h2>
+    <div class="speech">
+      <div class="speech-bar"><span></span><span></span><span></span></div>
+      <div class="speech-body"><span class="prompt">&gt;&gt;&gt;</span>${lvl.intro[step]}</div>
+    </div>
+    <div class="row-end">
+      ${step > 0 ? `<button class="btn btn-ghost" id="btnBack">Atrás</button>` : ""}
+      <button class="btn btn-primary" id="btnNext">${isLast ? "¡Empezar reto! 🚀" : "Siguiente"}</button>
+    </div>
+  `;
+
+  document.getElementById("btnNext").onclick = () => {
+    if(isLast){
+      state.phase = "practice";
+      state.assembled = [];
+      state.bankUsed = new Array(lvl.bank.length).fill(false);
+      render();
+    } else {
+      state.introStep++;
+      render();
+    }
+  };
+  const backBtn = document.getElementById("btnBack");
+  if(backBtn) backBtn.onclick = () => { state.introStep--; render(); };
+}
+
+/* ======================= RENDER: PRACTICE ======================= */
+function kindOf(lvl, idx){
+  return lvl.kinds[lvl.bank[idx]] || "op";
+}
+
+function renderPractice(){
+  const lvl = LEVELS[state.levelIndex];
+  setPitMood("idle");
+
+  const assembledHtml = state.assembled.length
+    ? state.assembled.map((bankIdx) => {
+        const word = lvl.bank[bankIdx];
+        const kind = kindOf(lvl, bankIdx);
+        return `<span class="block ${kind} placed" data-remove="${bankIdx}">${escapeHtml(word)}</span>`;
+      }).join("")
+    : "";
+
+  const bankHtml = lvl.bank.map((word, idx) => {
+    const kind = kindOf(lvl, idx);
+    const used = state.bankUsed[idx];
+    return `<span class="block ${kind}${used ? " usedup" : ""}" data-add="${idx}">${escapeHtml(word)}</span>`;
+  }).join("");
+
+  mainPanel.innerHTML = `
+    <div class="level-tag">${lvl.tag}</div>
+    <h2 class="level-title">${lvl.title}</h2>
+    <div class="speech">
+      <div class="speech-bar"><span></span><span></span><span></span></div>
+      <div class="speech-body"><span class="prompt">&gt;&gt;&gt;</span>¡Tu turno! Arma los bloques en el orden correcto.</div>
+    </div>
+    <div class="practice-wrap">
+      <div class="goal-box">🎯 Objetivo: ${lvl.goal}</div>
+      <div class="assembly ${state.assembled.length ? "" : "empty"}" id="assembly">${assembledHtml}</div>
+      <div class="bank" id="bank">${bankHtml}</div>
+      <div class="terminal" id="terminal">$ <span class="path">python programa.py</span></div>
+    </div>
+    <div class="row-end">
+      <button class="btn btn-ghost" id="btnClear">Vaciar</button>
+      <button class="btn btn-primary" id="btnRun">Ejecutar ▶</button>
+    </div>
+  `;
+
+  document.getElementById("bank").querySelectorAll("[data-add]").forEach(el => {
+    el.onclick = () => {
+      const idx = parseInt(el.getAttribute("data-add"));
+      if(state.bankUsed[idx]) return;
+      state.bankUsed[idx] = true;
+      state.assembled.push(idx);
+      renderPractice();
+    };
+  });
+  document.getElementById("assembly").querySelectorAll("[data-remove]").forEach(el => {
+    el.onclick = () => {
+      const idx = parseInt(el.getAttribute("data-remove"));
+      state.bankUsed[idx] = false;
+      const pos = state.assembled.indexOf(idx);
+      if(pos > -1) state.assembled.splice(pos,1);
+      renderPractice();
+    };
+  });
+
+  document.getElementById("btnClear").onclick = () => {
+    state.assembled = [];
+    state.bankUsed = new Array(lvl.bank.length).fill(false);
+    renderPractice();
+  };
+
+  document.getElementById("btnRun").onclick = () => checkSolution(lvl);
+}
+
+function escapeHtml(s){
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+function checkSolution(lvl){
+  const words = state.assembled.map(idx => lvl.bank[idx]);
+  const correct = words.length === lvl.solution.length && words.every((w,i) => w === lvl.solution[i]);
+  const assemblyEl = document.getElementById("assembly");
+  const terminal = document.getElementById("terminal");
+
+  if(correct){
+    assemblyEl.classList.remove("wrong");
+    assemblyEl.classList.add("right");
+    terminal.innerHTML = `$ <span class="path">python programa.py</span>\n` + escapeHtml(lvl.run());
+    setPitMood("happy");
+    state.xp += 10;
+    renderHeaderBits();
+    setTimeout(() => {
+      state.phase = "success";
+      render();
+    }, 900);
+  } else {
+    assemblyEl.classList.remove("right");
+    assemblyEl.classList.add("wrong");
+    terminal.innerHTML = `$ <span class="path">python programa.py</span>\n<span class="err">SyntaxError: revisa el orden de tus bloques</span>`;
+    setPitMood("sad");
+    state.hearts = Math.max(0, state.hearts - 1);
+    renderHeaderBits();
+    setTimeout(() => assemblyEl.classList.remove("wrong"), 400);
+
+    if(state.hearts === 0){
+      setTimeout(() => {
+        state.hearts = 3;
+        state.assembled = [];
+        state.bankUsed = new Array(lvl.bank.length).fill(false);
+        renderHeaderBits();
+        renderPractice();
+      }, 1100);
+    }
+  }
+}
+
+/* ======================= RENDER: SUCCESS ======================= */
+function renderSuccess(){
+  const lvl = LEVELS[state.levelIndex];
+  const isLastLevel = state.levelIndex === LEVELS.length - 1;
+  setPitMood("happy");
+
+  mainPanel.innerHTML = `
+    <div class="level-tag">${lvl.tag}</div>
+    <h2 class="level-title">¡Correcto! 🎉</h2>
+    <div class="speech">
+      <div class="speech-bar"><span></span><span></span><span></span></div>
+      <div class="speech-body"><span class="prompt">&gt;&gt;&gt;</span>¡Excelente trabajo! Ganaste 10 XP. ${isLastLevel ? "Has completado todos los niveles." : "Vamos con el siguiente nivel."}</div>
+    </div>
+    <div class="row-end">
+      <button class="btn btn-primary" id="btnContinue">${isLastLevel ? "Ver resultado final 🏆" : "Continuar"}</button>
+    </div>
+  `;
+
+  document.getElementById("btnContinue").onclick = () => {
+    if(isLastLevel){
+      state.phase = "end";
+    } else {
+      state.levelIndex++;
+      state.introStep = 0;
+      state.phase = "intro";
+    }
+    render();
+  };
+}
+
+/* ======================= RENDER: END ======================= */
+function renderEnd(){
+  setPitMood("happy");
+  mainPanel.innerHTML = `
+    <div class="end-screen">
+      <div style="font-size:2.4rem;">🏆</div>
+      <h2>¡Completaste PyBlocks!</h2>
+      <div class="big-xp">${state.xp} XP</div>
+      <p style="color:var(--ink-dim); max-width:420px;">
+        Aprendiste print(), variables, condicionales con if y bucles for armando código bloque por bloque. ¡Ya diste tus primeros pasos reales en Python!
+      </p>
+      <button class="btn btn-primary" id="btnRestart">Jugar de nuevo</button>
+    </div>
+  `;
+  document.getElementById("btnRestart").onclick = () => {
+    state = { levelIndex:0, phase:"intro", introStep:0, hearts:3, xp:0, assembled:[], bankUsed:[] };
+    render();
+  };
+}
+
+/* ======================= RENDER MASTER ======================= */
+function render(){
+  renderHeaderBits();
+  if(state.phase === "intro") renderIntro();
+  else if(state.phase === "practice") renderPractice();
+  else if(state.phase === "success") renderSuccess();
+  else if(state.phase === "end") renderEnd();
+}
+
+render();
+</script>
+</body>
+</html>
